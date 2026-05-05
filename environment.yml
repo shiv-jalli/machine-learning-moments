@@ -1,0 +1,16 @@
+name: ml-moments
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - jupyterlab
+  - notebook
+  - ipykernel
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - pytest
+  - nbformat
+  - pip

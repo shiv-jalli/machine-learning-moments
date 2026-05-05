@@ -1,0 +1,19 @@
+# Core notebook environment
+jupyterlab>=4.0
+notebook>=7.0
+ipykernel>=6.0
+
+# Data handling
+numpy>=1.26
+pandas>=2.2
+scipy>=1.12
+
+# Visualisation
+matplotlib>=3.8
+
+# Machine learning
+scikit-learn>=1.4
+
+# Notebook quality and testing helpers
+nbformat>=5.9
+pytest>=8.0

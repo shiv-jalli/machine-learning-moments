@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "machine-learning-moments"
+version = "0.1.0"
+description = "Simple AI and machine learning lessons, one notebook at a time."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT for code; CC BY 4.0 for educational content" }
+authors = [
+  { name = "Machine Learning Moments contributors" }
+]
+keywords = [
+  "python",
+  "machine-learning",
+  "data-science",
+  "jupyter",
+  "education",
+  "ai"
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Education",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = [
+  "jupyterlab>=4.0",
+  "notebook>=7.0",
+  "ipykernel>=6.0",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scipy>=1.12",
+  "matplotlib>=3.8",
+  "scikit-learn>=1.4",
+  "nbformat>=5.9"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS metadata
+.DS_Store
+__MACOSX/
+Thumbs.db
+
+# Secrets and local config
+.env
+.env.*
+*.log
+
+# Private or generated data
+data/private/
+datasets/private/
+models/
+outputs/
