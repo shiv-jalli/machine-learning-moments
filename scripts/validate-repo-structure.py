@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Validate the Machine Learning Moments repo scaffold.
+"""Validate the Machine Learning Moments repository structure.
 
-Checks:
-- required top-level files exist
-- no Mac metadata or nested .git folder is present
-- all 17 `notebooks/core-path/` folders exist
-- ROADMAP.md references each core-path folder
-- notebooks/core-path/README.md lists each folder
-- CONTENT_INDEX.md references only existing core-path folders
+This script is intended to run inside a real Git working tree.
+It ignores normal development folders such as .git and .venv,
+but it still flags unwanted public/release artefacts such as .DS_Store
+and __MACOSX.
 """
 
-from __future__ import annotations
-
-import re
-import sys
 from pathlib import Path
+import sys
+import re
+
+ROOT = Path.cwd()
 
 REQUIRED_TOP_LEVEL_FILES = [
     "README.md",
@@ -27,7 +24,7 @@ REQUIRED_TOP_LEVEL_FILES = [
     "pyproject.toml",
 ]
 
-CORE_PATH_FOLDERS = [
+CORE_PATH_DIRS = [
     "01-python-first-steps",
     "02-python-thinking-toolkit",
     "03-numbers-arrays-and-patterns",
@@ -47,64 +44,116 @@ CORE_PATH_FOLDERS = [
     "17-modern-ai-embeddings-and-rag",
 ]
 
-DISALLOWED_PATH_PARTS = {".git", "__MACOSX"}
-DISALLOWED_FILENAMES = {".DS_Store"}
+IGNORED_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ipynb_checkpoints",
+    "node_modules",
+}
+
+DISALLOWED_NAMES = {
+    ".DS_Store",
+}
+
+DISALLOWED_DIRS = {
+    "__MACOSX",
+}
 
 
-def fail(message: str, errors: list[str]) -> None:
-    errors.append(message)
+def is_ignored(path: Path) -> bool:
+    return any(part in IGNORED_DIRS for part in path.parts)
 
 
-def read(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+def read_text(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8", errors="ignore")
 
 
 def main() -> int:
-    root = Path.cwd()
     errors: list[str] = []
 
-    for filename in REQUIRED_TOP_LEVEL_FILES:
-        if not (root / filename).is_file():
-            fail(f"Missing required top-level file: {filename}", errors)
+    # Required top-level files
+    for file_name in REQUIRED_TOP_LEVEL_FILES:
+        if not (ROOT / file_name).is_file():
+            errors.append(f"Missing required top-level file: {file_name}")
 
-    for path in root.rglob("*"):
-        rel_parts = set(path.relative_to(root).parts)
-        if rel_parts & DISALLOWED_PATH_PARTS:
-            fail(f"Disallowed metadata path found: {path.relative_to(root)}", errors)
-        if path.name in DISALLOWED_FILENAMES:
-            fail(f"Disallowed metadata file found: {path.relative_to(root)}", errors)
+    # Required top-level directories
+    for dir_name in [
+        "notebooks",
+        "posts",
+        "exercises",
+        "quizzes",
+        "projects",
+        "datasets",
+        "src",
+        "assets",
+        "templates",
+        "scripts",
+    ]:
+        if not (ROOT / dir_name).is_dir():
+            errors.append(f"Missing required top-level directory: {dir_name}")
 
-    core_root = root / "notebooks" / "core-path"
-    if not core_root.is_dir():
-        fail("Missing notebooks/core-path directory", errors)
-    else:
-        actual = sorted([p.name for p in core_root.iterdir() if p.is_dir()])
-        expected = CORE_PATH_FOLDERS
-        if actual != expected:
-            fail(f"Core path folders do not match expected list. Expected {expected}, found {actual}", errors)
+    # Core path exists
+    core_path = ROOT / "notebooks" / "core-path"
+    if not core_path.is_dir():
+        errors.append("Missing required directory: notebooks/core-path")
 
-    roadmap = read(root / "ROADMAP.md") if (root / "ROADMAP.md").exists() else ""
-    core_readme = read(core_root / "README.md") if (core_root / "README.md").exists() else ""
-    content_index = read(root / "CONTENT_INDEX.md") if (root / "CONTENT_INDEX.md").exists() else ""
+    # Core path directories
+    for folder in CORE_PATH_DIRS:
+        phase_dir = core_path / folder
+        if not phase_dir.is_dir():
+            errors.append(f"Missing core-path directory: notebooks/core-path/{folder}")
+        if not (phase_dir / "README.md").is_file():
+            errors.append(f"Missing README.md in: notebooks/core-path/{folder}")
 
-    for folder in CORE_PATH_FOLDERS:
-        if f"notebooks/core-path/{folder}/" not in roadmap:
-            fail(f"ROADMAP.md does not reference notebooks/core-path/{folder}/", errors)
-        if f"`{folder}/`" not in core_readme and folder not in core_readme:
-            fail(f"notebooks/core-path/README.md does not list {folder}", errors)
+    # Flag unwanted metadata, but ignore normal Git/development folders
+    for path in ROOT.rglob("*"):
+        rel = path.relative_to(ROOT)
 
-    index_rows = [line for line in content_index.splitlines() if line.startswith("|") and not line.startswith("|---")]
-    referenced_folders: set[str] = set()
-    for line in index_rows[1:]:
-        parts = [part.strip() for part in line.strip("|").split("|")]
-        if len(parts) >= 4:
-            folder = parts[3]
-            if folder and folder != "Core path folder":
-                referenced_folders.add(folder)
+        if is_ignored(rel):
+            continue
 
-    unknown = sorted(folder for folder in referenced_folders if folder not in CORE_PATH_FOLDERS)
-    if unknown:
-        fail(f"CONTENT_INDEX.md references unknown core-path folders: {unknown}", errors)
+        if path.name in DISALLOWED_NAMES:
+            errors.append(f"Disallowed metadata file found: {rel}")
+
+        if path.is_dir() and path.name in DISALLOWED_DIRS:
+            errors.append(f"Disallowed metadata directory found: {rel}")
+
+    # ROADMAP should reference all core path folders
+    roadmap = read_text(ROOT / "ROADMAP.md")
+    for folder in CORE_PATH_DIRS:
+        expected = f"notebooks/core-path/{folder}/"
+        if expected not in roadmap and folder not in roadmap:
+            errors.append(f"ROADMAP.md does not reference core-path folder: {folder}")
+
+    # notebooks/core-path/README.md should list all core path folders
+    core_readme = read_text(core_path / "README.md")
+    for folder in CORE_PATH_DIRS:
+        if folder not in core_readme:
+            errors.append(f"notebooks/core-path/README.md does not list: {folder}")
+
+    # CONTENT_INDEX should not reference invalid core-path folders
+    content_index = read_text(ROOT / "CONTENT_INDEX.md")
+    referenced_core_folders = set(
+        re.findall(r"(?:^|[\\s`|/])((?:0[1-9]|1[0-7])-[a-z0-9-]+)", content_index)
+    )
+
+    valid_core_folders = set(CORE_PATH_DIRS)
+    for folder in sorted(referenced_core_folders):
+        if folder not in valid_core_folders:
+            errors.append(f"CONTENT_INDEX.md references unknown core-path folder: {folder}")
+
+    # Licence wording should mention both intended licences
+    licence = read_text(ROOT / "LICENSE")
+    if "MIT" not in licence:
+        errors.append("LICENSE should mention MIT for code")
+    if "CC BY 4.0" not in licence and "Creative Commons Attribution 4.0" not in licence:
+        errors.append("LICENSE should mention CC BY 4.0 for educational content")
 
     if errors:
         print("Validation failed:")
@@ -118,3 +167,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
